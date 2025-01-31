@@ -1,11 +1,8 @@
 # Étape 1 : Builder l'application
 FROM public.ecr.aws/amazonlinux/amazonlinux:2023 AS builder
 
-# Installer Node.js et ses dépendances
-RUN dnf install -y nodejs npm
-
-# Installer make et gcc pour node-gyp
-RUN dnf install -y make gcc
+# Installer Node.js et les dépendances de build
+RUN dnf install -y nodejs npm make gcc gcc-c++ python3
 
 WORKDIR /app
 
@@ -13,7 +10,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install
 
-# Copier le code source
+# Copier tout le code source
 COPY . .
 
 # Construire l'application Next.js en mode production
@@ -22,16 +19,17 @@ RUN npm run build
 # Étape 2 : Lancer l'application
 FROM public.ecr.aws/amazonlinux/amazonlinux:2023 AS runner
 
-# Installer Node.js pour exécuter Next.js
+# Installer Node.js et PM2
 RUN dnf install -y nodejs npm
 
 WORKDIR /app
 
-# Copier les fichiers du build
+# Copier le build depuis l’étape précédente
 COPY --from=builder /app ./
 
 # Exposer le port 3000
 EXPOSE 3000
 
-# Démarrer l'application
+# Lancer l'application avec PM2
 CMD ["npm", "run", "start"]
+
